@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.env
+venv/
+.venv/
+*.pyc
+
+# DVC — these directories are managed by DVC, never committed directly
+/data/raw/
+/data/processed/
+/models/logisticregression/
+/models/randomforest/
+/models/xgboost/
+/models/champion/
+/models/evaluation/
+/models/training_summary.json
+
+# MLflow
+mlruns/
+mlartifacts/
+mlruns.db
+
+# Jupyter
+.ipynb_checkpoints/
+notebooks/.ipynb_checkpoints/
+
+# Docker
+*.tar
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test + coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Logs
+*.log
