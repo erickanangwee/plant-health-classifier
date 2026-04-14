@@ -1,0 +1,100 @@
+# ─────────────────────────────────────────────────────────────────
+# Data
+# ─────────────────────────────────────────────────────────────────
+data:
+  dataset_name: "agyaatcoder/PlantDoc"
+
+  # Keywords that identify a HEALTHY label:
+  # A leaf is HEALTHY only if its label exactly matches one of these
+  # patterns (case-sensitive). All other labels are DISEASED.
+  # Pattern: "<Plant> leaf"  with no additional words.
+  healthy_keywords:
+    - "Apple leaf"
+    - "Blueberry leaf"
+    - "Cherry leaf"
+    - "Corn leaf"
+    - "Grape leaf"
+    - "Peach leaf"
+    - "Pepper leaf"
+    - "Potato leaf"
+    - "Raspberry leaf"
+    - "Soybean leaf"
+    - "Strawberry leaf"
+    - "Tomato leaf"
+
+  seed: 42
+  train_ratio: 0.70
+  val_ratio: 0.15
+  # test_ratio is implicit: 1 - 0.70 - 0.15 = 0.15
+
+# ─────────────────────────────────────────────────────────────────
+# Feature extraction
+# ─────────────────────────────────────────────────────────────────
+features:
+  # EfficientNet-B0: best accuracy/speed trade-off for leaf images.
+  # Produces a 1280-dim global average pooling vector per image.
+  backbone: "efficientnet_b0"
+  image_size: 224 # EfficientNet-B0 native input resolution
+  batch_size: 64 # images processed per GPU/CPU batch during extraction
+  normalize: true # StandardScaler fitted on train only
+
+# ─────────────────────────────────────────────────────────────────
+# Optuna hyperparameter search
+# ─────────────────────────────────────────────────────────────────
+optuna:
+  n_trials: 30 # trials per model — increase to 50+ for production
+  timeout: 600 # hard cap per model in seconds (10 min)
+  cv_folds: 5
+  metric: "f1_weighted" # optimisation target
+  direction: "maximize"
+
+# ─────────────────────────────────────────────────────────────────
+# Classifier search spaces
+# ─────────────────────────────────────────────────────────────────
+logistic_regression:
+  C_low: 0.001
+  C_high: 100.0
+  solver: ["lbfgs", "saga"]
+  max_iter: 2000
+  penalty: ["l2", "none"]
+
+random_forest:
+  n_estimators_low: 100
+  n_estimators_high: 500
+  max_depth_low: 4
+  max_depth_high: 30
+  min_samples_split_low: 2
+  min_samples_split_high: 12
+  max_features: ["sqrt", "log2"]
+
+xgboost:
+  n_estimators_low: 100
+  n_estimators_high: 500
+  max_depth_low: 3
+  max_depth_high: 12
+  learning_rate_low: 0.005
+  learning_rate_high: 0.3
+  subsample_low: 0.5
+  subsample_high: 1.0
+  colsample_bytree_low: 0.5
+  colsample_bytree_high: 1.0
+  gamma_low: 0.0
+  gamma_high: 5.0
+
+# ─────────────────────────────────────────────────────────────────
+# MLflow
+# ─────────────────────────────────────────────────────────────────
+mlflow:
+  experiment_name: "plant-health-classification"
+  model_name: "plant-health-classifier"
+  tracking_uri: "http://localhost:5000"
+
+# ─────────────────────────────────────────────────────────────────
+# Leaf guard (non-leaf image rejection)
+# ─────────────────────────────────────────────────────────────────
+leaf_guard:
+  # Cosine similarity of query embedding vs. mean training embedding.
+  # Images scoring below this threshold are rejected before classification.
+  # Tune lower (e.g. 0.60) to be more permissive, higher (0.75) to be stricter.
+  similarity_threshold: 0.68
+  centroid_path: "models/champion/leaf_centroid.npy"
