@@ -1,0 +1,148 @@
+schema: '2.0'
+stages:
+  download_data:
+    cmd: python src/data/download_dataset.py --output-dir data/raw --params 
+      params.yaml
+    deps:
+    - path: params.yaml
+      hash: md5
+      md5: 7ef08fd9f7e88cb78b88accfb0fc6a46
+      size: 4890
+    - path: src/data/download_dataset.py
+      hash: md5
+      md5: 6cf10849657804a1b0527ddbf8c0202a
+      size: 4865
+    params:
+      params.yaml:
+        data.dataset_name: agyaatcoder/PlantDoc
+        data.healthy_keywords:
+        - Apple leaf
+        - Blueberry leaf
+        - Cherry leaf
+        - Corn leaf
+        - Grape leaf
+        - Peach leaf
+        - Pepper leaf
+        - Potato leaf
+        - Raspberry leaf
+        - Soybean leaf
+        - Strawberry leaf
+        - Tomato leaf
+    outs:
+    - path: data/raw
+      hash: md5
+      md5: 091aada0d4977fbb3e2c59e20a40d993.dir
+      size: 1064200878
+      nfiles: 2579
+  prepare_data:
+    cmd: "python src/data/prepare_dataset.py --raw-dir data/raw --processed-dir data/processed
+      --params params.yaml\n"
+    deps:
+    - path: data/raw
+      hash: md5
+      md5: 091aada0d4977fbb3e2c59e20a40d993.dir
+      size: 1064200878
+      nfiles: 2579
+    - path: params.yaml
+      hash: md5
+      md5: 7ef08fd9f7e88cb78b88accfb0fc6a46
+      size: 4890
+    - path: src/data/prepare_dataset.py
+      hash: md5
+      md5: ae994afb3e64e9c45ee1be77b4bbc710
+      size: 6608
+    params:
+      params.yaml:
+        data.seed: 42
+        data.train_ratio: 0.7
+        data.val_ratio: 0.15
+        features.backbone: efficientnet_b0
+        features.batch_size: 64
+        features.image_size: 224
+        features.normalize: true
+    outs:
+    - path: data/processed
+      hash: md5
+      md5: fce540458aa03216d5e948bdf5ea3280.dir
+      size: 13241962
+      nfiles: 8
+  train_models:
+    cmd: "python src/training/train.py --processed-dir data/processed --output-dir
+      models --params params.yaml\n"
+    deps:
+    - path: data/processed
+      hash: md5
+      md5: fce540458aa03216d5e948bdf5ea3280.dir
+      size: 13241962
+      nfiles: 8
+    - path: params.yaml
+      hash: md5
+      md5: 7ef08fd9f7e88cb78b88accfb0fc6a46
+      size: 4890
+    - path: src/training/train.py
+      hash: md5
+      md5: 918b74c6e70bdbe6c7a17a56c728fe92
+      size: 15215
+    params:
+      params.yaml:
+        data.seed: 42
+        logistic_regression:
+          C_low: 0.001
+          C_high: 100.0
+          solver:
+          - lbfgs
+          - saga
+          max_iter: 2000
+          penalty:
+          - l2
+        mlflow.experiment_name: plant-health-classification
+        mlflow.tracking_uri: http://localhost:5000
+        optuna:
+          n_trials: 30
+          timeout: 600
+          cv_folds: 5
+          metric: f1_weighted
+          direction: maximize
+        random_forest:
+          n_estimators_low: 100
+          n_estimators_high: 500
+          max_depth_low: 4
+          max_depth_high: 30
+          min_samples_split_low: 2
+          min_samples_split_high: 12
+          max_features:
+          - sqrt
+          - log2
+        xgboost:
+          n_estimators_low: 100
+          n_estimators_high: 500
+          max_depth_low: 3
+          max_depth_high: 12
+          learning_rate_low: 0.005
+          learning_rate_high: 0.3
+          subsample_low: 0.5
+          subsample_high: 1.0
+          colsample_bytree_low: 0.5
+          colsample_bytree_high: 1.0
+          gamma_low: 0.0
+          gamma_high: 5.0
+    outs:
+    - path: models/logisticregression
+      hash: md5
+      md5: bcaa4cc1f10606962ddce1964fd2edcb.dir
+      size: 6659
+      nfiles: 2
+    - path: models/randomforest
+      hash: md5
+      md5: 7957b675442652a77feef07e2adb613d.dir
+      size: 1214866
+      nfiles: 2
+    - path: models/training_summary.json
+      hash: md5
+      md5: f2fd4fae3bfa213ba6799c8087ffc9d2
+      size: 2499
+    - path: models/xgboost
+      hash: md5
+      md5: 11eb9216beb451dd1ec9afb22eb545cf.dir
+      size: 205254
+      nfiles: 2
