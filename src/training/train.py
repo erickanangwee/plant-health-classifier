@@ -74,22 +74,53 @@ def make_lr_objective(X_tr, y_tr, p, cv):
     opt_metric = p["optuna"]["metric"]
 
     def objective(trial: optuna.Trial) -> float:
-        solver  = trial.suggest_categorical("solver", lp["solver"])
+        solver = trial.suggest_categorical("solver", lp["solver"])
         penalty = trial.suggest_categorical("penalty", lp["penalty"])
-        # saga supports l1/l2/elasticnet/none; lbfgs only l2/none
-        if solver == "lbfgs" and penalty not in ("l2", "none"):
+
+        # --- FIX 1: Convert string "none" → None ---
+        if penalty == "none":
+            penalty = None
+
+        # --- FIX 2: Enforce valid solver–penalty combinations ---
+        if solver == "lbfgs" and penalty not in ("l2", None):
             raise optuna.TrialPruned()
-        C = (trial.suggest_float("C", lp["C_low"], lp["C_high"], log=True)
-             if penalty != "none" else 1.0)
+
+        if solver == "liblinear" and penalty not in ("l1", "l2"):
+            raise optuna.TrialPruned()
+
+        if solver == "saga" and penalty not in ("l1", "l2", "elasticnet", None):
+            raise optuna.TrialPruned()
+
+        # --- FIX 3: Only tune C when relevant ---
+        if penalty is None:
+            C = 1.0
+        else:
+            C = trial.suggest_float("C", lp["C_low"], lp["C_high"], log=True)
+
         model = LogisticRegression(
-            C=C, solver=solver, penalty=penalty,
+            C=C,
+            solver=solver,
+            penalty=penalty,
             max_iter=lp["max_iter"],
             class_weight="balanced",
             random_state=p["data"]["seed"],
         )
-        scores = cross_val_score(model, X_tr, y_tr, cv=cv, scoring=opt_metric,
-                                 n_jobs=-1)
-        return float(scores.mean())
+
+        # --- FIX 4: Prevent pipeline crash ---
+        try:
+            scores = cross_val_score(
+                model,
+                X_tr,
+                y_tr,
+                cv=cv,
+                scoring=opt_metric,
+                n_jobs=-1,
+                error_score=np.nan,
+            )
+            return float(np.nanmean(scores))
+        except Exception:
+            return float("nan")
+
     return objective
 
 
@@ -274,7 +305,9 @@ def main():
     # ── 1. Logistic Regression 
     def build_lr(bp):
         penalty = bp.get("penalty", "l2")
-        C       = bp.get("C", 1.0) if penalty != "none" else 1.0
+        if penalty == "none":
+            penalty = None
+        C       = bp.get("C", 1.0) if penalty is not None else 1.0
         return LogisticRegression(
             C=C, solver=bp["solver"], penalty=penalty,
             max_iter=p["logistic_regression"]["max_iter"],
