@@ -6,8 +6,8 @@ stages:
     deps:
     - path: params.yaml
       hash: md5
-      md5: 7ef08fd9f7e88cb78b88accfb0fc6a46
-      size: 4890
+      md5: dca1475e13e8d35ede75148d7bedb3fc
+      size: 4882
     - path: src/data/download_dataset.py
       hash: md5
       md5: 6cf10849657804a1b0527ddbf8c0202a
@@ -45,8 +45,8 @@ stages:
       nfiles: 2579
     - path: params.yaml
       hash: md5
-      md5: 7ef08fd9f7e88cb78b88accfb0fc6a46
-      size: 4890
+      md5: dca1475e13e8d35ede75148d7bedb3fc
+      size: 4882
     - path: src/data/prepare_dataset.py
       hash: md5
       md5: ae994afb3e64e9c45ee1be77b4bbc710
@@ -77,8 +77,8 @@ stages:
       nfiles: 8
     - path: params.yaml
       hash: md5
-      md5: 7ef08fd9f7e88cb78b88accfb0fc6a46
-      size: 4890
+      md5: dca1475e13e8d35ede75148d7bedb3fc
+      size: 4882
     - path: src/training/train.py
       hash: md5
       md5: 918b74c6e70bdbe6c7a17a56c728fe92
@@ -96,7 +96,7 @@ stages:
           penalty:
           - l2
         mlflow.experiment_name: plant-health-classification
-        mlflow.tracking_uri: http://localhost:5000
+        mlflow.tracking_uri: file:./mlruns
         optuna:
           n_trials: 30
           timeout: 600
@@ -145,4 +145,59 @@ stages:
       hash: md5
       md5: 11eb9216beb451dd1ec9afb22eb545cf.dir
       size: 205254
+      nfiles: 2
+  evaluate:
+    cmd: "python src/training/evaluate.py --models-dir models --processed-dir data/processed
+      --raw-dir data/raw --output-dir models/evaluation --params params.yaml\n"
+    deps:
+    - path: data/processed
+      hash: md5
+      md5: fce540458aa03216d5e948bdf5ea3280.dir
+      size: 13241962
+      nfiles: 8
+    - path: data/raw
+      hash: md5
+      md5: 091aada0d4977fbb3e2c59e20a40d993.dir
+      size: 1064200878
+      nfiles: 2579
+    - path: models/logisticregression
+      hash: md5
+      md5: bcaa4cc1f10606962ddce1964fd2edcb.dir
+      size: 6659
+      nfiles: 2
+    - path: models/randomforest
+      hash: md5
+      md5: 7957b675442652a77feef07e2adb613d.dir
+      size: 1214866
+      nfiles: 2
+    - path: models/xgboost
+      hash: md5
+      md5: 11eb9216beb451dd1ec9afb22eb545cf.dir
+      size: 205254
+      nfiles: 2
+    - path: params.yaml
+      hash: md5
+      md5: dca1475e13e8d35ede75148d7bedb3fc
+      size: 4882
+    - path: src/training/evaluate.py
+      hash: md5
+      md5: 8e1941db9a7d704893357508c52db409
+      size: 7873
+    params:
+      params.yaml:
+        features.batch_size: 64
+        features.image_size: 224
+        mlflow.experiment_name: plant-health-classification
+        mlflow.model_name: plant-health-classifier
+        mlflow.tracking_uri: file:./mlruns
+    outs:
+    - path: models/champion
+      hash: md5
+      md5: d3626ee28ad12773b93cc0ffb68987bd.dir
+      size: 42970
+      nfiles: 4
+    - path: models/evaluation
+      hash: md5
+      md5: 4216e9d7aff051334e9d719627b293c5.dir
+      size: 4496
       nfiles: 2
