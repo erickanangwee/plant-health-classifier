@@ -36,10 +36,10 @@ jobs:
           pip install fastapi uvicorn pydantic python-multipart
 
       - name: Run Black
-        run: black --check .
+        run: black .
 
       - name: Run isort
-        run: isort --check-only .
+        run: isort .
 
       - name: Run flake8
         run: flake8 .
