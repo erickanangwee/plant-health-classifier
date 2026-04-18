@@ -37,13 +37,8 @@ import optuna
 import yaml
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import (
-    accuracy_score,
-    f1_score,
-    precision_score,
-    recall_score,
-    roc_auc_score,
-)
+from sklearn.metrics import (accuracy_score, f1_score, precision_score,
+                             recall_score, roc_auc_score)
 from sklearn.model_selection import StratifiedKFold, cross_val_score
 from xgboost import XGBClassifier
 

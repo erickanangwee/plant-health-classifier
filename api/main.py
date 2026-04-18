@@ -37,12 +37,8 @@ from PIL import Image
 
 from api.leaf_guard import LeafGuard
 from api.model_loader import get_model, get_scaler
-from api.schemas import (
-    ClassesResponse,
-    HealthResponse,
-    PredictionResponse,
-    RejectionDetail,
-)
+from api.schemas import (ClassesResponse, HealthResponse, PredictionResponse,
+                         RejectionDetail)
 
 ACCEPTED_TYPES = {"image/jpeg", "image/jpg", "image/png", "image/webp"}
 LABELS = {0: "HEALTHY", 1: "DISEASED"}

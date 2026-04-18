@@ -32,12 +32,8 @@ import mlflow
 import mlflow.sklearn
 import numpy as np
 import yaml
-from sklearn.metrics import (
-    classification_report,
-    confusion_matrix,
-    f1_score,
-    roc_auc_score,
-)
+from sklearn.metrics import (classification_report, confusion_matrix, f1_score,
+                             roc_auc_score)
 
 
 def load_params(path="params.yaml"):
