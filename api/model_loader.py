@@ -6,13 +6,14 @@ Paths are anchored to this file's location (api/), then resolved
 to the project root — safe regardless of where uvicorn is launched from.
 """
 
-import joblib
 from pathlib import Path
+
+import joblib
 
 # Project root = one directory above api/
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
-_model  = None
+_model = None
 _scaler = None
 
 

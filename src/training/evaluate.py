@@ -22,17 +22,21 @@ models/evaluation/
   classification_report.txt
 """
 
+import argparse
 import json
 import shutil
-import argparse
-import yaml
-import numpy as np
+from pathlib import Path
+
 import joblib
 import mlflow
 import mlflow.sklearn
-from pathlib import Path
+import numpy as np
+import yaml
 from sklearn.metrics import (
-    classification_report, f1_score, roc_auc_score, confusion_matrix
+    classification_report,
+    confusion_matrix,
+    f1_score,
+    roc_auc_score,
 )
 
 
@@ -48,30 +52,32 @@ def compute_leaf_centroid(raw_dir: Path, params: dict) -> np.ndarray:
     from PIL import Image
     from tqdm import tqdm
 
-    fp       = params["features"]
+    fp = params["features"]
     img_size = fp["image_size"]
-    bsz      = fp["batch_size"]
+    bsz = fp["batch_size"]
 
     weights = tvm.EfficientNet_B0_Weights.IMAGENET1K_V1
-    model   = tvm.efficientnet_b0(weights=weights)
+    model = tvm.efficientnet_b0(weights=weights)
     model.classifier = torch.nn.Identity()
     model.eval()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model  = model.to(device)
+    model = model.to(device)
 
-    transform = T.Compose([
-        T.Resize((img_size, img_size)),
-        T.ToTensor(),
-        T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
-    ])
+    transform = T.Compose(
+        [
+            T.Resize((img_size, img_size)),
+            T.ToTensor(),
+            T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+        ]
+    )
 
-    img_files  = sorted((raw_dir / "images").glob("*.jpg"))
+    img_files = sorted((raw_dir / "images").glob("*.jpg"))
     embeddings = []
 
     for start in tqdm(range(0, len(img_files), bsz), desc="Computing centroid"):
         batch = img_files[start : start + bsz]
-        imgs  = [Image.open(fp).convert("RGB") for fp in batch]
+        imgs = [Image.open(fp).convert("RGB") for fp in batch]
         tensors = torch.stack([transform(im) for im in imgs]).to(device)
         with torch.no_grad():
             embs = model(tensors).cpu().numpy()
@@ -83,14 +89,17 @@ def compute_leaf_centroid(raw_dir: Path, params: dict) -> np.ndarray:
 
 
 def evaluate(
-    models_dir: str, processed_dir: str, raw_dir: str,
-    output_dir: str, params_path: str = "params.yaml",
+    models_dir: str,
+    processed_dir: str,
+    raw_dir: str,
+    output_dir: str,
+    params_path: str = "params.yaml",
 ) -> None:
-    p    = load_params(params_path)
+    p = load_params(params_path)
     mdir = Path(models_dir)
-    prc  = Path(processed_dir)
-    raw  = Path(raw_dir)
-    out  = Path(output_dir)
+    prc = Path(processed_dir)
+    raw = Path(raw_dir)
+    out = Path(output_dir)
     out.mkdir(parents=True, exist_ok=True)
 
     champ_dir = mdir / "champion"
@@ -101,14 +110,16 @@ def evaluate(
 
     X_test = np.load(prc / "X_test.npy")
     y_test = np.load(prc / "y_test.npy")
-    print(f"Test set: {X_test.shape[0]} samples  "
-          f"({int(np.sum(y_test==0))} healthy / {int(np.sum(y_test==1))} diseased)")
+    print(
+        f"Test set: {X_test.shape[0]} samples  "
+        f"({int(np.sum(y_test==0))} healthy / {int(np.sum(y_test==1))} diseased)"
+    )
 
     # Evaluate every model on the test set
     model_paths = {
         "LogisticRegression": mdir / "logisticregression" / "best_model.joblib",
-        "RandomForest":       mdir / "randomforest"       / "best_model.joblib",
-        "XGBoost":            mdir / "xgboost"            / "best_model.joblib",
+        "RandomForest": mdir / "randomforest" / "best_model.joblib",
+        "XGBoost": mdir / "xgboost" / "best_model.joblib",
     }
 
     test_results: dict[str, dict] = {}
@@ -116,18 +127,20 @@ def evaluate(
         if not weight_path.exists():
             print(f"  Skipping {name} - not found at {weight_path}")
             continue
-        model   = joblib.load(weight_path)
-        preds   = model.predict(X_test)
-        probas  = model.predict_proba(X_test)[:, 1]
-        f1      = f1_score(y_test, preds, average="weighted", zero_division=0)
-        auc     = roc_auc_score(y_test, probas)
+        model = joblib.load(weight_path)
+        preds = model.predict(X_test)
+        probas = model.predict_proba(X_test)[:, 1]
+        f1 = f1_score(y_test, preds, average="weighted", zero_division=0)
+        auc = roc_auc_score(y_test, probas)
         test_results[name] = {
             "f1_weighted": float(f1),
-            "roc_auc":     float(auc),
+            "roc_auc": float(auc),
             "report_dict": classification_report(
-                y_test, preds,
+                y_test,
+                preds,
                 target_names=["HEALTHY", "DISEASED"],
-                output_dict=True, zero_division=0,
+                output_dict=True,
+                zero_division=0,
             ),
             "confusion_matrix": confusion_matrix(y_test, preds).tolist(),
         }
@@ -142,16 +155,18 @@ def evaluate(
         key=lambda n: (test_results[n]["f1_weighted"], test_results[n]["roc_auc"]),
     )
     champ_m = test_results[champion_name]
-    print(f"\nChampion: {champion_name}  "
-          f"(F1={champ_m['f1_weighted']:.4f}, AUC={champ_m['roc_auc']:.4f})")
+    print(
+        f"\nChampion: {champion_name}  "
+        f"(F1={champ_m['f1_weighted']:.4f}, AUC={champ_m['roc_auc']:.4f})"
+    )
 
     shutil.copy(model_paths[champion_name], champ_dir / "best_model.joblib")
-    shutil.copy(prc / "scaler.joblib",      champ_dir / "scaler.joblib")
+    shutil.copy(prc / "scaler.joblib", champ_dir / "scaler.joblib")
 
     champion_info = {
-        "champion_model":    champion_name,
-        "test_f1_weighted":  champ_m["f1_weighted"],
-        "test_roc_auc":      champ_m["roc_auc"],
+        "champion_model": champion_name,
+        "test_f1_weighted": champ_m["f1_weighted"],
+        "test_roc_auc": champ_m["roc_auc"],
         "all_test_results": {
             n: {"f1_weighted": v["f1_weighted"], "roc_auc": v["roc_auc"]}
             for n, v in test_results.items()
@@ -164,7 +179,7 @@ def evaluate(
     with mlflow.start_run(run_name=f"Champion-{champion_name}"):
         mlflow.log_params({"champion_model": champion_name})
         mlflow.log_metric("test_f1_weighted", champ_m["f1_weighted"])
-        mlflow.log_metric("test_roc_auc",     champ_m["roc_auc"])
+        mlflow.log_metric("test_roc_auc", champ_m["roc_auc"])
         mlflow.sklearn.log_model(
             champ_model,
             artifact_path="champion_model",
@@ -180,11 +195,13 @@ def evaluate(
 
     report_txt = ""
     for name, res in test_results.items():
-        model  = joblib.load(model_paths[name])
-        preds  = model.predict(X_test)
-        report_txt += (f"\n{'='*55}\n{name}\n"
-                       f"F1={res['f1_weighted']:.4f}  AUC={res['roc_auc']:.4f}\n"
-                       f"{'-'*55}\n")
+        model = joblib.load(model_paths[name])
+        preds = model.predict(X_test)
+        report_txt += (
+            f"\n{'='*55}\n{name}\n"
+            f"F1={res['f1_weighted']:.4f}  AUC={res['roc_auc']:.4f}\n"
+            f"{'-'*55}\n"
+        )
         report_txt += classification_report(
             y_test, preds, target_names=["HEALTHY", "DISEASED"], zero_division=0
         )
@@ -194,23 +211,24 @@ def evaluate(
     print(f"\nEvaluation outputs saved to {out}")
     print(f"Champion info saved to {champ_dir / 'champion_info.json'}")
 
+
 def main():
     parser = argparse.ArgumentParser(
         description="Evaluate all trained models and select the champion."
     )
-    parser.add_argument("--models-dir",    default="models")
+    parser.add_argument("--models-dir", default="models")
     parser.add_argument("--processed-dir", default="data/processed")
-    parser.add_argument("--raw-dir",       default="data/raw")
-    parser.add_argument("--output-dir",    default="models/evaluation")
-    parser.add_argument("--params",        default="params.yaml")
+    parser.add_argument("--raw-dir", default="data/raw")
+    parser.add_argument("--output-dir", default="models/evaluation")
+    parser.add_argument("--params", default="params.yaml")
     args = parser.parse_args()
 
     evaluate(
-        models_dir    = args.models_dir,
-        processed_dir = args.processed_dir,
-        raw_dir       = args.raw_dir,
-        output_dir    = args.output_dir,
-        params_path   = args.params,
+        models_dir=args.models_dir,
+        processed_dir=args.processed_dir,
+        raw_dir=args.raw_dir,
+        output_dir=args.output_dir,
+        params_path=args.params,
     )
 
 

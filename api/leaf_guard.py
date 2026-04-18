@@ -9,14 +9,14 @@ embedding and the mean ("centroid") embedding of the entire training set.
 If similarity < params.leaf_guard.similarity_threshold → REJECTED.
 """
 
+from pathlib import Path
+
 import numpy as np
-import yaml
 import torch
 import torchvision.models as tvm
 import torchvision.transforms as T
-from pathlib import Path
+import yaml
 from PIL import Image
-
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
@@ -30,13 +30,13 @@ def _load_params(path: str = None) -> dict:
 
 class LeafGuard:
     def __init__(self, params_path: str = None):
-        p  = _load_params(params_path)
+        p = _load_params(params_path)
         gp = p["leaf_guard"]
         fp = p["features"]
 
         self.threshold = gp["similarity_threshold"]
         # Anchor centroid path to project root
-        centroid_path  = _PROJECT_ROOT / gp["centroid_path"]
+        centroid_path = _PROJECT_ROOT / gp["centroid_path"]
 
         if not centroid_path.exists():
             raise FileNotFoundError(
@@ -46,20 +46,22 @@ class LeafGuard:
         self.centroid = np.load(centroid_path).astype(np.float32)
 
         # Build EfficientNet-B0 embedder (same backbone used in training)
-        weights        = tvm.EfficientNet_B0_Weights.IMAGENET1K_V1
-        model          = tvm.efficientnet_b0(weights=weights)
+        weights = tvm.EfficientNet_B0_Weights.IMAGENET1K_V1
+        model = tvm.efficientnet_b0(weights=weights)
         model.classifier = torch.nn.Identity()
         model.eval()
-        self._model    = model
-        self._transform = T.Compose([
-            T.Resize((fp["image_size"], fp["image_size"])),
-            T.ToTensor(),
-            T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
-        ])
+        self._model = model
+        self._transform = T.Compose(
+            [
+                T.Resize((fp["image_size"], fp["image_size"])),
+                T.ToTensor(),
+                T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+            ]
+        )
 
     @torch.no_grad()
     def embed(self, image: Image.Image) -> np.ndarray:
-        x   = self._transform(image).unsqueeze(0)
+        x = self._transform(image).unsqueeze(0)
         emb = self._model(x).squeeze().numpy()
         return emb.astype(np.float32)
 

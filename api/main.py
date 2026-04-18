@@ -37,19 +37,24 @@ from PIL import Image
 
 from api.leaf_guard import LeafGuard
 from api.model_loader import get_model, get_scaler
-from api.schemas import (ClassesResponse, HealthResponse,
-                          PredictionResponse, RejectionDetail)
+from api.schemas import (
+    ClassesResponse,
+    HealthResponse,
+    PredictionResponse,
+    RejectionDetail,
+)
 
 ACCEPTED_TYPES = {"image/jpeg", "image/jpg", "image/png", "image/webp"}
-LABELS         = {0: "HEALTHY", 1: "DISEASED"}
+LABELS = {0: "HEALTHY", 1: "DISEASED"}
 
 # Module-level singletons initialised in lifespan
-_guard:       LeafGuard | None = None
-_transform:   T.Compose | None = None
-_embedder:    torch.nn.Module | None = None
+_guard: LeafGuard | None = None
+_transform: T.Compose | None = None
+_embedder: torch.nn.Module | None = None
 
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
 
 def _load_params(path: str = None) -> dict:
     if path is None:
@@ -73,18 +78,20 @@ async def lifespan(app: FastAPI):
     _guard = LeafGuard()
 
     print("[startup] Building EfficientNet-B0 feature extractor...")
-    p        = _load_params()
+    p = _load_params()
     img_size = p["features"]["image_size"]
-    weights  = tvm.EfficientNet_B0_Weights.IMAGENET1K_V1
-    mob      = tvm.efficientnet_b0(weights=weights)
+    weights = tvm.EfficientNet_B0_Weights.IMAGENET1K_V1
+    mob = tvm.efficientnet_b0(weights=weights)
     mob.classifier = torch.nn.Identity()
     mob.eval()
-    _embedder  = mob
-    _transform = T.Compose([
-        T.Resize((img_size, img_size)),
-        T.ToTensor(),
-        T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
-    ])
+    _embedder = mob
+    _transform = T.Compose(
+        [
+            T.Resize((img_size, img_size)),
+            T.ToTensor(),
+            T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+        ]
+    )
 
     print("=== API ready ===")
     yield
@@ -113,19 +120,20 @@ app.add_middleware(
 @torch.no_grad()
 def _extract_features(image: Image.Image) -> np.ndarray:
     """Return (1, 1280) float32 EfficientNet-B0 embedding."""
-    x    = _transform(image).unsqueeze(0)
+    x = _transform(image).unsqueeze(0)
     feat = _embedder(x).squeeze().numpy()
     return feat.reshape(1, -1).astype(np.float32)
 
 
 # ── Endpoints ───────────────────────────────────────────────────────────────
 
+
 @app.get("/health", response_model=HealthResponse, tags=["Meta"])
 def health():
     try:
-        model  = get_model()
+        model = get_model()
         loaded = model is not None
-        mtype  = type(model).__name__ if loaded else None
+        mtype = type(model).__name__ if loaded else None
     except Exception:
         loaded, mtype = False, None
     return HealthResponse(
@@ -152,15 +160,19 @@ def classes():
     response_model=PredictionResponse,
     responses={
         415: {"description": "Unsupported image format"},
-        422: {"description": "Image rejected — not a plant leaf",
-              "model": RejectionDetail},
+        422: {
+            "description": "Image rejected — not a plant leaf",
+            "model": RejectionDetail,
+        },
     },
     tags=["Prediction"],
 )
-async def predict(file: UploadFile = File(
-    ...,
-    description="JPEG, PNG, or WebP image of a plant leaf.",
-)):
+async def predict(
+    file: UploadFile = File(
+        ...,
+        description="JPEG, PNG, or WebP image of a plant leaf.",
+    )
+):
     # ── 1. Content type validation ───────────────────────────────────────────
     if file.content_type not in ACCEPTED_TYPES:
         raise HTTPException(
@@ -176,8 +188,7 @@ async def predict(file: UploadFile = File(
     try:
         image = Image.open(io.BytesIO(raw_bytes)).convert("RGB")
     except Exception as exc:
-        raise HTTPException(status_code=400,
-                            detail=f"Could not decode image: {exc}")
+        raise HTTPException(status_code=400, detail=f"Could not decode image: {exc}")
 
     # ── 3. Leaf guard ────────────────────────────────────────────────────────
     is_leaf, sim_score = _guard.check(image)
@@ -207,9 +218,9 @@ async def predict(file: UploadFile = File(
         features = scaler.transform(features)
 
     # ── 6. Classify ──────────────────────────────────────────────────────────
-    model      = get_model()
-    pred_int   = int(model.predict(features)[0])
-    probas     = model.predict_proba(features)[0]   # [p_healthy, p_diseased]
+    model = get_model()
+    pred_int = int(model.predict(features)[0])
+    probas = model.predict_proba(features)[0]  # [p_healthy, p_diseased]
     confidence = float(probas[pred_int])
     pred_label = LABELS[pred_int]
 
