@@ -140,7 +140,7 @@ def prepare(raw_dir: str, processed_dir: str, params_path: str = "params.yaml") 
         random_state=seed,
     )
 
-    print(f"\nSplit sizes:")
+    print("\nSplit sizes:")
     print(
         f"  Train : {len(X_train):>5}  "
         f"({int(np.sum(y_train==0))} healthy / {int(np.sum(y_train==1))} diseased)"
