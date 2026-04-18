@@ -31,15 +31,24 @@ jobs:
       - name: Install lint and test dependencies
         run: |
           pip install --upgrade pip
-          pip install flake8 pytest httpx
+          pip install flake8 pytest httpx black isort pre-commit
           # Install lightweight API deps only (no torch in lint job for speed)
           pip install fastapi uvicorn pydantic python-multipart
+
+      - name: Run Black
+        run: black --check .
+
+      - name: Run isort
+        run: isort --check-only .
+
+      - name: Run flake8
+        run: flake8 .
 
       - name: Lint with flake8
         run: |
           flake8 src/ api/ tests/ \
             --max-line-length=100 \
-            --ignore=E501,W503,E402 \
+            --ignore=E501,W503,E203,E402,E221,E241,E251,E127,E128,W292 \
             --exclude=__pycache__,venv
 
       - name: Verify schema imports
