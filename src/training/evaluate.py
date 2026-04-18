@@ -1,17 +1,17 @@
 """
 DVC Stage: evaluate
-════════════════════
+====================
 Evaluates all trained models on the held-out TEST set (never seen during
 training or tuning).  Selects the champion by highest test-set F1-weighted
 score.  Also computes the leaf centroid vector used by the API's leaf guard.
 
 Champion selection criteria
-────────────────────────────
+----------------------------
 Primary   : f1_weighted on test set   (handles class imbalance)
 Tiebreaker: roc_auc on test set
 
 Outputs
-───────
+--------
 models/champion/
   best_model.joblib
   scaler.joblib         (copied from data/processed/)
@@ -42,11 +42,6 @@ def load_params(path="params.yaml"):
 
 
 def compute_leaf_centroid(raw_dir: Path, params: dict) -> np.ndarray:
-    """
-    Compute and return the mean EfficientNet-B0 embedding of all
-    training images.  This centroid is the reference point used by the
-    leaf guard: a query image too far from this centroid is rejected.
-    """
     import torch
     import torchvision.models as tvm
     import torchvision.transforms as T
@@ -109,7 +104,7 @@ def evaluate(
     print(f"Test set: {X_test.shape[0]} samples  "
           f"({int(np.sum(y_test==0))} healthy / {int(np.sum(y_test==1))} diseased)")
 
-    # ── Evaluate every model on the test set 
+    # Evaluate every model on the test set
     model_paths = {
         "LogisticRegression": mdir / "logisticregression" / "best_model.joblib",
         "RandomForest":       mdir / "randomforest"       / "best_model.joblib",
@@ -119,7 +114,7 @@ def evaluate(
     test_results: dict[str, dict] = {}
     for name, weight_path in model_paths.items():
         if not weight_path.exists():
-            print(f"  ⚠ Skipping {name} — not found at {weight_path}")
+            print(f"  Skipping {name} - not found at {weight_path}")
             continue
         model   = joblib.load(weight_path)
         preds   = model.predict(X_test)
@@ -139,18 +134,17 @@ def evaluate(
         print(f"  {name:<25}  Test F1: {f1:.4f}  AUC: {auc:.4f}")
 
     if not test_results:
-        raise RuntimeError("No trained models found.  Run train_models stage first.")
+        raise RuntimeError("No trained models found. Run train_models stage first.")
 
-    # ── Select champion 
+    # Select champion
     champion_name = max(
         test_results,
         key=lambda n: (test_results[n]["f1_weighted"], test_results[n]["roc_auc"]),
     )
     champ_m = test_results[champion_name]
-    print(f"\n🏆 Champion: {champion_name}  "
+    print(f"\nChampion: {champion_name}  "
           f"(F1={champ_m['f1_weighted']:.4f}, AUC={champ_m['roc_auc']:.4f})")
 
-    # ── Copy champion model + scaler 
     shutil.copy(model_paths[champion_name], champ_dir / "best_model.joblib")
     shutil.copy(prc / "scaler.joblib",      champ_dir / "scaler.joblib")
 
@@ -166,7 +160,6 @@ def evaluate(
     with open(champ_dir / "champion_info.json", "w") as f:
         json.dump(champion_info, f, indent=2)
 
-    # ── Register champion in MLflow model registry 
     champ_model = joblib.load(champ_dir / "best_model.joblib")
     with mlflow.start_run(run_name=f"Champion-{champion_name}"):
         mlflow.log_params({"champion_model": champion_name})
@@ -178,12 +171,10 @@ def evaluate(
             registered_model_name=p["mlflow"]["model_name"],
         )
 
-    # ── Compute and save leaf centroid 
     print("\nComputing leaf centroid for the leaf guard...")
     centroid = compute_leaf_centroid(raw, p)
     np.save(champ_dir / "leaf_centroid.npy", centroid)
 
-    # ── Save full evaluation report 
     with open(out / "test_metrics.json", "w") as f:
         json.dump(test_results, f, indent=2)
 
@@ -191,9 +182,9 @@ def evaluate(
     for name, res in test_results.items():
         model  = joblib.load(model_paths[name])
         preds  = model.predict(X_test)
-        report_txt += (f"\n{'═'*55}\n{name}\n"
+        report_txt += (f"\n{'='*55}\n{name}\n"
                        f"F1={res['f1_weighted']:.4f}  AUC={res['roc_auc']:.4f}\n"
-                       f"{'─'*55}\n")
+                       f"{'-'*55}\n")
         report_txt += classification_report(
             y_test, preds, target_names=["HEALTHY", "DISEASED"], zero_division=0
         )
@@ -203,15 +194,25 @@ def evaluate(
     print(f"\nEvaluation outputs saved to {out}")
     print(f"Champion info saved to {champ_dir / 'champion_info.json'}")
 
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+def main():
+    parser = argparse.ArgumentParser(
+        description="Evaluate all trained models and select the champion."
+    )
     parser.add_argument("--models-dir",    default="models")
     parser.add_argument("--processed-dir", default="data/processed")
     parser.add_argument("--raw-dir",       default="data/raw")
     parser.add_argument("--output-dir",    default="models/evaluation")
     parser.add_argument("--params",        default="params.yaml")
     args = parser.parse_args()
-    evaluate(args.models_dir, args.processed_dir, args.raw_dir,
-             args.output_dir, args.params)
-    
+
+    evaluate(
+        models_dir    = args.models_dir,
+        processed_dir = args.processed_dir,
+        raw_dir       = args.raw_dir,
+        output_dir    = args.output_dir,
+        params_path   = args.params,
+    )
+
+
+if __name__ == "__main__":
+    main()

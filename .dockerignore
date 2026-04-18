@@ -20,3 +20,6 @@ tests/
 .env
 .pytest_cache/
 .coverage
+.venv/
+env/
+ENV/

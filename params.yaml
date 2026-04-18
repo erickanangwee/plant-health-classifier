@@ -56,7 +56,7 @@ logistic_regression:
   C_high: 100.0
   solver: ["lbfgs", "saga"]
   max_iter: 2000
-  penalty: ["l2", "none"]
+  penalty: ["l2"]
 
 random_forest:
   n_estimators_low: 100
@@ -87,7 +87,7 @@ xgboost:
 mlflow:
   experiment_name: "plant-health-classification"
   model_name: "plant-health-classifier"
-  tracking_uri: "http://localhost:5000"
+  tracking_uri: "file:./mlruns"
 
 # ─────────────────────────────────────────────────────────────────
 # Leaf guard (non-leaf image rejection)

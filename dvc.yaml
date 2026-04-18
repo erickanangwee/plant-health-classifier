@@ -82,5 +82,4 @@ stages:
       - models/evaluation
 
 metrics:
-  - models/evaluation/test_metrics.json:
-      cache: false
+  - models/evaluation/test_metrics.json
