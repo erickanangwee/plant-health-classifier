@@ -31,9 +31,7 @@ jobs:
       - name: Install lint and test dependencies
         run: |
           pip install --upgrade pip
-          pip install flake8 pytest httpx black isort pre-commit
-          # Install lightweight API deps only (no torch in lint job for speed)
-          pip install fastapi uvicorn pydantic python-multipart
+          pip install -r requirements.txt
 
       - name: Run Black
         run: black .
