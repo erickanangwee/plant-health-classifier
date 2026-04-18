@@ -235,10 +235,10 @@ jobs:
             "https://upload.wikimedia.org/wikipedia/commons/thumb/e/eb/Late_blight_on_tomato_leaf_%287871756748%29.jpg/640px-Late_blight_on_tomato_leaf_%287871756748%29.jpg" \
             -o /tmp/test_leaf.jpg
 
-          HTTP_CODE=$(curl -sf -o /tmp/predict_response.json \
+          HTTP_CODE=$(curl -s -o /tmp/predict_response.json \
             -w "%{http_code}" \
             -X POST http://localhost:8000/predict \
-            -F "file=@/tmp/test_leaf.jpg" || echo "000")
+            -F "file=@/tmp/test_leaf.jpg")
 
           echo "HTTP code: $HTTP_CODE"
           echo "Response: $(cat /tmp/predict_response.json)"
