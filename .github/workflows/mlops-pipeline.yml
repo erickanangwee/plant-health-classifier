@@ -232,7 +232,7 @@ jobs:
         run: |
           # Download a sample leaf image from Wikimedia
           curl -sL \
-            "https://upload.wikimedia.org/wikipedia/commons/thumb/e/eb/Late_blight_on_tomato_leaf_%287871756748%29.jpg/640px-Late_blight_on_tomato_leaf_%287871756748%29.jpg" \
+            "https://raw.githubusercontent.com/pytorch/hub/master/images/dog.jpg" \
             -o /tmp/test_leaf.jpg
 
           HTTP_CODE=$(curl -s -o /tmp/predict_response.json \
