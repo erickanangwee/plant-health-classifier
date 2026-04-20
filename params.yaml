@@ -96,5 +96,5 @@ leaf_guard:
   # Cosine similarity of query embedding vs. mean training embedding.
   # Images scoring below this threshold are rejected before classification.
   # Tune lower (e.g. 0.60) to be more permissive, higher (0.75) to be stricter.
-  similarity_threshold: 0.68
+  similarity_threshold: 0.40
   centroid_path: "models/champion/leaf_centroid.npy"
