@@ -22,7 +22,7 @@ Request pipeline
 from __future__ import annotations
 
 import io
-#import json
+import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -105,10 +105,18 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+ALLOWED_ORIGINS = os.environ.get(
+    "ALLOWED_ORIGINS",
+    # Default: allow all during development.
+    # In production set this env var to your actual Vercel URL.
+    "*"
+).split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
 
