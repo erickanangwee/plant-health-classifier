@@ -1,0 +1,15 @@
+# .replit — tells Replit how to start the frontend dev server
+entrypoint = "frontend/index.html"
+run        = "cd frontend && npm install && npm run dev"
+
+[nix]
+channel = "stable-23_11"
+
+[deployment]
+run        = ["sh", "-c", "cd frontend && npm install && npm run build && npm run preview"]
+deploymentTarget = "static"
+publicDir  = "frontend/dist"
+
+[[ports]]
+localPort    = 5173
+externalPort = 80
