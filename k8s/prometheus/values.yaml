@@ -1,0 +1,63 @@
+# kube-prometheus-stack Helm values
+# Installs Prometheus + Alertmanager + Grafana + node-exporter + kube-state-metrics
+# in the 'monitoring' namespace.
+#
+# Install with:
+#   helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+#   helm repo update
+#   helm install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
+#     --namespace monitoring --create-namespace \
+#     -f k8s/prometheus/values.yaml
+
+prometheus:
+  prometheusSpec:
+    # Scrape interval for all targets
+    scrapeInterval: 15s
+    evaluationInterval: 15s
+
+    # Allow Prometheus to discover ServiceMonitors in all namespaces
+    serviceMonitorSelectorNilUsesHelmValues: false
+    serviceMonitorSelector: {}
+    serviceMonitorNamespaceSelector: {}
+
+    # Persistent storage for metrics (use emptyDir for Minikube demos)
+    storageSpec:
+      emptyDir:
+        medium: ""
+
+    # Retention period
+    retention: 7d
+
+grafana:
+  enabled: true
+  adminPassword: "plantguard-admin" # change for production
+  service:
+    type: NodePort
+    nodePort: 30300
+
+  # Pre-provision a datasource pointing at the in-cluster Prometheus
+  additionalDataSources:
+    - name: Prometheus
+      type: prometheus
+      url: http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090
+      access: proxy
+      isDefault: true
+
+alertmanager:
+  enabled: true
+  alertmanagerSpec:
+    storage:
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 1Gi
+
+# Node exporter: exposes host-level CPU/memory/disk metrics
+nodeExporter:
+  enabled: false
+
+# Kube state metrics: exposes Kubernetes object metrics
+kubeStateMetrics:
+  enabled: true
