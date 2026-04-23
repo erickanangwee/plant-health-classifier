@@ -56,3 +56,29 @@ All three models use EfficientNet-B0 (frozen) features + Optuna tuning:
 | XGBoost             | 30 Optuna trials | MLflow    |
 
 Champion is selected by highest F1-weighted on the held-out test set.
+
+## Frontend
+
+| Environment | URL                                        | Purpose               |
+| ----------- | ------------------------------------------ | --------------------- |
+| Development | `http://localhost:5173`                    | Local Vite dev server |
+| Replit      | `https://<repl>.<user>.repl.co`            | Team preview / demo   |
+| Production  | `https://plant-health-frontend.vercel.app` | Public deployment     |
+
+### Run Frontend Locally
+
+```bash
+cd frontend
+npm install
+npm run dev
+# Open http://localhost:5173
+```
+
+### Environment Variables
+
+| Variable       | Description      | Example                 |
+| -------------- | ---------------- | ----------------------- |
+| `VITE_API_URL` | FastAPI base URL | `http://localhost:8000` |
+
+Leave `VITE_API_URL` empty to use the Vite dev proxy (recommended for local dev).  
+Use ngrok tunnelling to get a `VITE_API_URL` with `ngrok http 8000`
