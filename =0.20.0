@@ -1,0 +1,19 @@
+Collecting prometheus-fastapi-instrumentator
+  Downloading prometheus_fastapi_instrumentator-7.1.0-py3-none-any.whl.metadata (13 kB)
+Collecting prometheus-client
+  Downloading prometheus_client-0.25.0-py3-none-any.whl.metadata (2.1 kB)
+Collecting starlette<1.0.0,>=0.30.0 (from prometheus-fastapi-instrumentator)
+  Using cached starlette-0.52.1-py3-none-any.whl.metadata (6.3 kB)
+Requirement already satisfied: anyio<5,>=3.6.2 in .\venv\Lib\site-packages (from starlette<1.0.0,>=0.30.0->prometheus-fastapi-instrumentator) (4.13.0)
+Requirement already satisfied: typing-extensions>=4.10.0 in .\venv\Lib\site-packages (from starlette<1.0.0,>=0.30.0->prometheus-fastapi-instrumentator) (4.15.0)
+Requirement already satisfied: idna>=2.8 in .\venv\Lib\site-packages (from anyio<5,>=3.6.2->starlette<1.0.0,>=0.30.0->prometheus-fastapi-instrumentator) (3.11)
+Downloading prometheus_fastapi_instrumentator-7.1.0-py3-none-any.whl (19 kB)
+Downloading prometheus_client-0.25.0-py3-none-any.whl (64 kB)
+Using cached starlette-0.52.1-py3-none-any.whl (74 kB)
+Installing collected packages: prometheus-client, starlette, prometheus-fastapi-instrumentator
+  Attempting uninstall: starlette
+    Found existing installation: starlette 1.0.0
+    Uninstalling starlette-1.0.0:
+      Successfully uninstalled starlette-1.0.0
+
+Successfully installed prometheus-client-0.25.0 prometheus-fastapi-instrumentator-7.1.0 starlette-0.52.1
