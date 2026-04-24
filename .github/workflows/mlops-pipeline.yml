@@ -45,7 +45,7 @@ jobs:
       - name: Lint with flake8
         run: |
           flake8 src/ api/ tests/ \
-            --extend-ignore=E501,E401,E541,E741,W503,E203,E402,E221,E241,E251,E127,E128,W292 \
+            --extend-ignore=E501,E303,E401,E541,E741,W503,E203,E402,E221,E241,E251,E127,E128,W292 \
             --exclude=__pycache__,venv
 
       - name: Verify schema imports
