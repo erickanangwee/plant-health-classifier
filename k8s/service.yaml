@@ -3,13 +3,13 @@ kind: Service
 metadata:
   name: plant-health-service
   labels:
-    app: plant-health-api
+    app: plant-health-api # must match ServiceMonitor selector
 spec:
   type: NodePort
   selector:
     app: plant-health-api
   ports:
-    - name: http
+    - name: http # named port — referenced in ServiceMonitor
       protocol: TCP
       port: 80
       targetPort: 8000

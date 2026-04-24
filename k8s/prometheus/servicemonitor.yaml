@@ -1,0 +1,21 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: plant-health-api-monitor
+  namespace: monitoring # must match the Prometheus namespace
+  labels:
+    # This label must match the serviceMonitorSelector in the Prometheus CR.
+    # The kube-prometheus-stack Helm chart sets release: kube-prometheus-stack.
+    release: kube-prometheus-stack
+spec:
+  namespaceSelector:
+    matchNames:
+      - default # namespace where your API Service lives
+  selector:
+    matchLabels:
+      app: plant-health-api # matches k8s/service.yaml labels
+  endpoints:
+    - port: http # named port in k8s/service.yaml
+      path: /metrics
+      interval: 15s # scrape every 15 seconds
+      scrapeTimeout: 10s

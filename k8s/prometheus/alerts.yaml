@@ -1,0 +1,109 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: plant-health-alerts
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack # must match Prometheus ruleSelector
+spec:
+  groups:
+    - name: plantguard.inference
+      interval: 30s
+      rules:
+        # Alert: high inference latency
+        - alert: PlantGuardHighInferenceLatency
+          expr: |
+            histogram_quantile(0.95,
+              sum(rate(plantguard_inference_duration_seconds_bucket[5m])) by (le)
+            ) > 2.0
+          for: 2m
+          labels:
+            severity: warning
+          annotations:
+            summary: "PlantGuard p95 inference latency above 2 seconds"
+            description: >
+              The 95th-percentile inference latency is {{ $value | humanizeDuration }}.
+              This may indicate CPU pressure or a cold EfficientNet model.
+
+        # Alert: very high rejection rate
+        - alert: PlantGuardHighRejectionRate
+          expr: |
+            (
+              sum(rate(plantguard_guard_decisions_total{decision="rejected"}[10m]))
+              /
+              sum(rate(plantguard_guard_decisions_total[10m]))
+            ) > 0.50
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "PlantGuard leaf guard rejecting >50% of images"
+            description: >
+              Rejection rate is {{ $value | humanizePercentage }} over the last 10 min.
+              This could mean users are uploading non-leaf images, or that the
+              centroid threshold is misconfigured.
+
+        # Alert: no predictions being made
+        - alert: PlantGuardNoPredictions
+          expr: |
+            sum(rate(plantguard_predictions_total[5m])) == 0
+          for: 10m
+          labels:
+            severity: critical
+          annotations:
+            summary: "PlantGuard is receiving no predictions for 10+ minutes"
+            description: >
+              No predictions have been recorded in the last 10 minutes.
+              This could indicate the API is down or unreachable from the
+              load balancer.
+
+        # Alert: low confidence predictions
+        - alert: PlantGuardLowMeanConfidence
+          expr: |
+            (
+              sum(rate(plantguard_confidence_score_sum[15m]))
+              /
+              sum(rate(plantguard_confidence_score_count[15m]))
+            ) < 0.65
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "PlantGuard mean prediction confidence below 65%"
+            description: >
+              Mean confidence is {{ $value | humanizePercentage }}.
+              This may indicate model drift — the incoming image distribution
+              may have shifted away from the training distribution.
+
+    - name: plantguard.availability
+      rules:
+        # Alert: API pod unavailable
+        - alert: PlantGuardPodDown
+          expr: |
+            kube_deployment_status_replicas_available{
+              deployment="plant-health-api"
+            } < 1
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: "PlantGuard API has no available replicas"
+            description: >
+              The plant-health-api Deployment has {{ $value }} available replicas.
+              Users cannot submit predictions.
+
+        # Alert: high HTTP error rate
+        - alert: PlantGuardHighErrorRate
+          expr: |
+            (
+              sum(rate(http_requests_total{status=~"5.."}[5m]))
+              /
+              sum(rate(http_requests_total[5m]))
+            ) > 0.05
+          for: 2m
+          labels:
+            severity: warning
+          annotations:
+            summary: "PlantGuard HTTP 5xx error rate above 5%"
+            description: >
+              {{ $value | humanizePercentage }} of requests are returning 5xx errors.
