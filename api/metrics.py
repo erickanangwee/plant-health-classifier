@@ -39,7 +39,7 @@ Model info (custom):
   plantguard_model_info                — gauge labelled with model type + version
 """
 
-from prometheus_client import Counter, Histogram, Gauge, Info
+from prometheus_client import Counter, Histogram, Info #, Gauge
 
 # ── Prediction outcomes 
 PREDICTIONS_TOTAL = Counter(
