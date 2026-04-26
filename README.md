@@ -831,4 +831,4 @@ All three models use frozen **EfficientNet-B0** (ImageNet pre-trained) for featu
 | Local frontend  | http://localhost:5173                             |
 | MLflow UI       | http://localhost:5000                             |
 | Kubernetes API  | Run `minikube service plant-health-service --url` |
-| Vercel frontend | https://plant-health-frontend.vercel.app          |
+| Vercel frontend | https://plant-health-frontend-omega.vercel.app    |
